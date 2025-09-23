@@ -40,7 +40,7 @@ const featureNames: Record<string, string> = {
     travel: "Travel",
     savings_goal: "Savings Goal",
     loan_request: "Loan Request",
-    zakat: "Zakat",
+    zakat: "Zakat(Charity)",
     quran_daily: "Quran Daily",
 }
 
@@ -138,7 +138,7 @@ export default function FeatureUsageChart() {
             <Box sx={{ mb: 3 }}>
                 <Stack
                     direction={{ xs: "column", sm: "row" }}
-                    justifyContent="space-between"
+                    justifyContent="flex-start"
                     alignItems="start"
                     spacing={2}
                 >
@@ -204,7 +204,7 @@ export default function FeatureUsageChart() {
                             },
                         ]}
                         series={series}
-                        margin={{ top: 20, right: 30, left: 60, bottom: 80 }}
+                        margin={{ top: 20, right: 40, left: 60, bottom: 60 }}
                         slotProps={{
                             legend: {
                                 direction: "row",
@@ -228,10 +228,15 @@ export default function FeatureUsageChart() {
                                 )
                                 const percentage =
                                     totalUsage > 0 ? (totalFeatureUsage / totalUsage) * 100 : 0
-                                return { feature, totalFeatureUsage, percentage }
+
+                                // find color from chart series
+                                const seriesConfig = series.find((s) => s.dataKey === feature)
+                                const color = seriesConfig?.color || theme.palette.grey[400]
+
+                                return { feature, totalFeatureUsage, percentage, color }
                             })
                             .sort((a, b) => b.totalFeatureUsage - a.totalFeatureUsage)
-                            .map(({ feature, totalFeatureUsage, percentage }, index) => (
+                            .map(({ feature, totalFeatureUsage, percentage, color }) => (
                                 <Grid item xs={12} sm={6} lg={4} key={feature}>
                                     <Paper
                                         sx={{
@@ -248,8 +253,7 @@ export default function FeatureUsageChart() {
                                                 width: 16,
                                                 height: 16,
                                                 borderRadius: "50%",
-                                                backgroundColor:
-                                                    featureColors[index % featureColors.length],
+                                                backgroundColor: color,
                                                 flexShrink: 0,
                                             }}
                                         />
@@ -258,16 +262,35 @@ export default function FeatureUsageChart() {
                                                 {featureNames[feature] || feature}
                                             </Typography>
                                             <Typography variant="caption" color="text.secondary">
-                                                {totalFeatureUsage.toLocaleString()} uses (
-                                                {percentage.toFixed(1)}%)
+                                                {totalFeatureUsage.toLocaleString()} uses ({percentage.toFixed(1)}%)
                                             </Typography>
                                         </Box>
                                     </Paper>
                                 </Grid>
                             ))}
                     </Grid>
+                    <Box sx={{ mt: 4, pr: 8 }}>
+                        <Typography variant="h6" gutterBottom>
+                            Observations & Insights
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" paragraph>
+                            Feature usage often correlates with <strong>seasonal trends</strong> and
+                            <strong> user segments</strong>. For example, travel-related features may peak
+                            during holiday seasons, while bill payment and airtime purchases are more stable
+                            month-to-month. Segments such as students or salaried workers may also display
+                            unique patterns—for instance, higher fund transfers at the end of the month or
+                            increased savings goal activity during festive periods.
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            These insights suggest that analyzing both <strong>time periods</strong> and
+                            <strong> user groups</strong> together provides deeper understanding of user
+                            behavior, which can inform product improvements and targeted engagement strategies.
+                        </Typography>
+                    </Box>
+
                 </Box>
             </CardContent>
         </Card>
+
     )
 }

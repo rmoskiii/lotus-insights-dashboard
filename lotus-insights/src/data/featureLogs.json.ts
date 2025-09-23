@@ -1,7 +1,7 @@
 // src/data/featureLogs.json.ts
+
 import seasons from "./seasons.json";
 
-// Core features (banking + faith features for your app)
 const features = [
     "login",
     "fund_transfer",
@@ -14,20 +14,20 @@ const features = [
     "quran_daily",
 ];
 
-// Base weights (higher = more common in daily usage)
+// Assign weights to simulate real-world frequency
 const featureWeights: Record<string, number> = {
-    login: 120,
-    fund_transfer: 80,
-    airtime_purchase: 60,
-    bill_payment: 40,
-    savings_goal: 25,
-    loan_request: 15,
-    travel: 10,
-    zakat: 8,
-    quran_daily: 6,
+    login: 40,
+    fund_transfer: 20,
+    airtime_purchase: 15,
+    bill_payment: 10,
+    savings_goal: 5,
+    loan_request: 3,
+    travel: 3,
+    zakat: 2,
+    quran_daily: 2,
 };
 
-// Seasonal boosts (events drive usage spikes)
+// Seasonal boosts
 const seasonalBoosts: Record<string, string[]> = {
     Ramadan: ["quran_daily", "zakat", "airtime_purchase"],
     "Eid al-Fitr": ["fund_transfer", "airtime_purchase"],
@@ -37,10 +37,8 @@ const seasonalBoosts: Record<string, string[]> = {
     "Back-to-School": ["bill_payment", "loan_request", "savings_goal"],
 };
 
-// Pull in all users (from users.json.ts)
-const users = Array.from({ length: 100 }, (_, i) => `u${i + 1}`);
+const users = Array.from({ length: 30 }, (_, i) => `u${i + 1}`);
 
-// Helpers
 function randomDate(start: Date, end: Date) {
     return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
@@ -61,7 +59,7 @@ function weightedRandomFeature(date: Date): string {
         if (date >= start && date <= end) {
             const boosted = seasonalBoosts[season.name] || [];
             boosted.forEach((f) => {
-                weightedList.push(...Array(40).fill(f)); // stronger boost than before
+                weightedList.push(...Array(10).fill(f)); // +10 weight boost
             });
         }
     }
@@ -69,12 +67,11 @@ function weightedRandomFeature(date: Date): string {
     return weightedList[Math.floor(Math.random() * weightedList.length)];
 }
 
-// Generate LOTS of logs (more realistic volume for analysis)
-const logs = Array.from({ length: 20000 }, (_, i) => {
-    const timestamp = randomDate(new Date("2024-01-01"), new Date("2025-12-31"));
+const logs = Array.from({ length: 1000 }, (_, i) => {
+    const timestamp = randomDate(new Date("2024-01-01"), new Date("2025-09-01"));
     const feature = weightedRandomFeature(timestamp);
     const userId = users[Math.floor(Math.random() * users.length)];
-    const sessionId = `session-${Math.floor(Math.random() * 5000)}`;
+    const sessionId = `session-${Math.floor(Math.random() * 1000)}`;
 
     return {
         id: `f${i + 1}`,
