@@ -1,122 +1,273 @@
-import React from "react";
-import { Box, Typography, Grid, Paper } from "@mui/material";
+"use client"
+
+import { useState, useMemo } from "react"
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    CartesianGrid,
-    LineChart,
-    Line,
-    Legend,
-} from "recharts";
-import featureLogs from "../data/featureLogs.json.ts";
+    Box,
+    Card,
+    CardContent,
+    Typography,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Grid,
+    Chip,
+    Paper,
+    Stack,
+} from "@mui/material"
+import { BarChart } from "@mui/x-charts/BarChart"
+import { useTheme } from "@mui/material/styles"
+import users from "../data/users.json.ts"
+import featureLogsJson from "../data/featureLogs.json"
 
-// --- Aggregate Feature Counts (for Bar Chart) ---
-const featureCounts = featureLogs.reduce<Record<string, number>>((acc, log) => {
-    acc[log.feature] = (acc[log.feature] || 0) + 1;
-    return acc;
-}, {});
+const featureColors = [
+    "#1976d2", // Blue
+    "#388e3c", // Green
+    "#f57c00", // Orange
+    "#d32f2f", // Red
+    "#7b1fa2", // Purple
+    "#0097a7", // Cyan
+    "#f9a825", // Amber
+    "#689f38", // Light Green
+    "#e91e63", // Pink
+]
 
-const featureChartData = Object.entries(featureCounts).map(([feature, count]) => ({
-    feature,
-    count,
-}));
-
-// --- Aggregate Usage Over Time (Monthly, By Feature) ---
-function getMonthKey(dateStr: string) {
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+const featureNames: Record<string, string> = {
+    login: "Login",
+    fund_transfer: "Fund Transfer",
+    bill_payment: "Bill Payment",
+    airtime_purchase: "Airtime Purchase",
+    travel: "Travel",
+    savings_goal: "Savings Goal",
+    loan_request: "Loan Request",
+    zakat: "Zakat",
+    quran_daily: "Quran Daily",
 }
 
-// Build a map: { month: { feature: count } }
-const monthlyFeatureMap: Record<string, Record<string, number>> = {};
+export default function FeatureUsageChart() {
+    const theme = useTheme()
+    const [selectedSegment, setSelectedSegment] = useState<string>("all")
 
-featureLogs.forEach((log) => {
-    const month = getMonthKey(log.timestamp);
-    if (!monthlyFeatureMap[month]) monthlyFeatureMap[month] = {};
-    monthlyFeatureMap[month][log.feature] =
-        (monthlyFeatureMap[month][log.feature] || 0) + 1;
-});
+    const userSegments = useMemo(() => {
+        const segments = [...new Set(users.map((user) => user.segment))]
+        return ["all", ...segments.sort()]
+    }, [])
 
-// Convert to array: [{ month, login: 10, transfer: 5, airtime: 7, ... }]
-const timeChartData = Object.entries(monthlyFeatureMap)
-    .map(([month, features]) => ({
-        month,
-        ...features,
-    }))
-    .sort((a, b) => a.month.localeCompare(b.month)); // chronological
+    const userSegmentMap = useMemo(() => {
+        const map: Record<string, string> = {}
+        users.forEach((user) => {
+            map[user.id] = user.segment
+        })
+        return map
+    }, [])
 
-// Unique features list for generating <Line /> components dynamically
-const uniqueFeatures = Array.from(
-    new Set(featureLogs.map((log) => log.feature))
-);
+    const { chartData, availableFeatures, totalUsage } = useMemo(() => {
+        const logs = featureLogsJson
 
-const Trends: React.FC = () => {
+        // Filter logs by selected segment
+        const filteredLogs =
+            selectedSegment === "all"
+                ? logs
+                : logs.filter((log) => userSegmentMap[log.userId] === selectedSegment)
+
+        // Group by month and feature
+        const monthlyData: Record<string, Record<string, number>> = {}
+
+        filteredLogs.forEach((log) => {
+            const date = new Date(log.timestamp)
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {}
+            }
+
+            if (!monthlyData[monthKey][log.feature]) {
+                monthlyData[monthKey][log.feature] = 0
+            }
+
+            monthlyData[monthKey][log.feature]++
+        })
+
+        // Convert to chart format
+        const chartArray = Object.entries(monthlyData)
+            .map(([month, features]) => ({
+                month: new Date(month + "-01").toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                }),
+                ...features,
+            }))
+            .sort((a, b) =>
+                new Date(a.month).getTime() - new Date(b.month).getTime()
+            )
+
+        // Collect all features
+        const features = new Set<string>()
+        chartArray.forEach((data) => {
+            Object.keys(data).forEach((key) => {
+                if (key !== "month") features.add(key)
+            })
+        })
+
+        const availableFeatures = Array.from(features).sort()
+
+        // Total usage
+        const totalUsage = chartArray.reduce((sum, month) => {
+            return (
+                sum +
+                availableFeatures.reduce((monthSum, feature) => {
+                    return monthSum + (month[feature] || 0)
+                }, 0)
+            )
+        }, 0)
+
+        return { chartData: chartArray, availableFeatures, totalUsage }
+    }, [selectedSegment, userSegmentMap])
+
+    const series = useMemo(() => {
+        return availableFeatures.map((feature, index) => ({
+            dataKey: feature,
+            label: featureNames[feature] || feature,
+            color: featureColors[index % featureColors.length],
+            stack: "usage",
+        }))
+    }, [availableFeatures])
+
     return (
-        <Box
-            sx={{
-                flexGrow: 1,
-                bgcolor: "#f9f9f9",
-                minHeight: "100vh",
-                p: 4,
-            }}
-        >
-            {/* Page Title */}
-            <Typography variant="h4" gutterBottom fontWeight="bold">
-                Usage Trends
-            </Typography>
-
-            <Grid container spacing={3}>
-                {/* Feature Usage Counts */}
-                <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, height: 500 }}>
-                        <Typography variant="h6" gutterBottom>
-                            Feature Usage Counts
+        <Card sx={{ width: "100%", p: 2 }}>
+            <Box sx={{ mb: 3 }}>
+                <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    justifyContent="space-between"
+                    alignItems="start"
+                    spacing={2}
+                >
+                    <Box>
+                        <Typography variant="h4" gutterBottom>
+                            Feature Usage Trends
                         </Typography>
-                        <ResponsiveContainer width="100%" height="90%">
-                            <BarChart data={featureChartData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="feature" />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="count" fill="#1976d2" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </Paper>
-                </Grid>
-
-                {/* Usage Over Time (By Feature) */}
-                <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, height: 500 }}>
-                        <Typography variant="h6" gutterBottom>
-                            Usage Over Time (Monthly by Feature)
+                        <Typography variant="body2" color="text.secondary">
+                            Monthly usage breakdown by feature
+                            {selectedSegment !== "all" && ` for ${selectedSegment} segment`}
                         </Typography>
-                        <ResponsiveContainer width="100%" height="90%">
-                            <LineChart data={timeChartData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="month" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                {uniqueFeatures.map((f, idx) => (
-                                    <Line
-                                        key={f}
-                                        type="monotone"
-                                        dataKey={f}
-                                        stroke={`hsl(${(idx * 50) % 360}, 70%, 50%)`} // auto colors
-                                        strokeWidth={2}
-                                    />
-                                ))}
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </Paper>
-                </Grid>
-            </Grid>
-        </Box>
-    );
-};
+                    </Box>
 
-export default Trends;
+                    <FormControl size="small" sx={{ minWidth: 180 }}>
+                        <InputLabel>User Segment</InputLabel>
+                        <Select
+                            value={selectedSegment}
+                            label="User Segment"
+                            onChange={(e) => setSelectedSegment(e.target.value)}
+                        >
+                            {userSegments.map((segment) => (
+                                <MenuItem key={segment} value={segment}>
+                                    {segment === "all"
+                                        ? "All Segments"
+                                        : segment.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Stack>
+
+                <Stack direction="row" spacing={2} sx={{ mt: 2 }} flexWrap="wrap">
+                    <Chip
+                        label={`Total Usage: ${totalUsage.toLocaleString()}`}
+                        variant="outlined"
+                        color="primary"
+                    />
+                    <Chip
+                        label={`Time Period: ${chartData.length} months`}
+                        variant="outlined"
+                        color="secondary"
+                    />
+                    <Chip
+                        label={`Features: ${availableFeatures.length}`}
+                        variant="outlined"
+                        color="info"
+                    />
+                </Stack>
+            </Box>
+
+            <CardContent sx={{ p: 0 }}>
+                <Box sx={{ width: "100%", height: 500 }}>
+                    <BarChart
+                        dataset={chartData}
+                        xAxis={[
+                            {
+                                scaleType: "band",
+                                dataKey: "month",
+                                tickLabelStyle: {
+                                    angle: -45,
+                                    textAnchor: "end",
+                                },
+                            },
+                        ]}
+                        series={series}
+                        margin={{ top: 20, right: 30, left: 60, bottom: 80 }}
+                        slotProps={{
+                            legend: {
+                                direction: "row",
+                                position: { vertical: "top", horizontal: "middle" },
+                                padding: 0,
+                            },
+                        }}
+                    />
+                </Box>
+
+                <Box sx={{ mt: 4 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Feature Usage Summary
+                    </Typography>
+                    <Grid container spacing={2}>
+                        {availableFeatures
+                            .map((feature) => {
+                                const totalFeatureUsage = chartData.reduce(
+                                    (sum, month) => sum + (month[feature] || 0),
+                                    0
+                                )
+                                const percentage =
+                                    totalUsage > 0 ? (totalFeatureUsage / totalUsage) * 100 : 0
+                                return { feature, totalFeatureUsage, percentage }
+                            })
+                            .sort((a, b) => b.totalFeatureUsage - a.totalFeatureUsage)
+                            .map(({ feature, totalFeatureUsage, percentage }, index) => (
+                                <Grid item xs={12} sm={6} lg={4} key={feature}>
+                                    <Paper
+                                        sx={{
+                                            p: 2,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 2,
+                                            border: 1,
+                                            borderColor: "divider",
+                                        }}
+                                    >
+                                        <Box
+                                            sx={{
+                                                width: 16,
+                                                height: 16,
+                                                borderRadius: "50%",
+                                                backgroundColor:
+                                                    featureColors[index % featureColors.length],
+                                                flexShrink: 0,
+                                            }}
+                                        />
+                                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                            <Typography variant="body2" fontWeight="medium" noWrap>
+                                                {featureNames[feature] || feature}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {totalFeatureUsage.toLocaleString()} uses (
+                                                {percentage.toFixed(1)}%)
+                                            </Typography>
+                                        </Box>
+                                    </Paper>
+                                </Grid>
+                            ))}
+                    </Grid>
+                </Box>
+            </CardContent>
+        </Card>
+    )
+}
