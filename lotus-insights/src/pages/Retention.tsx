@@ -157,8 +157,9 @@ export default function Retention() {
                             />
                         </Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                            Insights: Business and Premium users retain longer across all periods,
-                            while Students and Elderly segments drop off more sharply by Month 6.
+                            Premium and business users strengthen their retention from Month 1 to Month 6, suggesting
+                            effective engagement, while family and student users fall off more sharply — a clear
+                            opportunity for targeted interventions.
                         </Typography>
                     </Box>
                 )}
