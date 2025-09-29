@@ -13,6 +13,7 @@ import {
 } from "@mui/material"
 import { BarChart, LineChart } from "@mui/x-charts"
 import { useTheme } from "@mui/material/styles"
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 // --- Feature → Retention Correlation ---
 // Inline dummy data to simulate impact of different features on retention
@@ -57,6 +58,9 @@ const churnSignals = [
     { signal: "Never set up a savings goal", risk: "55% churn risk (1.8× higher)" },
     { signal: "One-time loan request only", risk: "50% churn risk (1.5× higher)" },
     { signal: "Only used airtime top-up", risk: "48% churn risk (1.4× higher)" },
+    { signal: "No bill payment in first month", risk: "45% churn risk (1.3× higher)" },
+    { signal: "No usage of fund transfer feature", risk: "52% churn risk (1.6× higher)" },
+    { signal: "Never used rewards or offers", risk: "40% churn risk (1.2× higher)" },
 ]
 
 export default function Retention() {
