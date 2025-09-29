@@ -9,7 +9,7 @@ const features = [
     "airtime_purchase",
     "travel",
     "savings_goal",
-    "loan_request",
+    "Mudarabah(loans)",
     "zakat",
     "quran_daily",
 ];

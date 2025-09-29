@@ -39,7 +39,7 @@ const featureNames: Record<string, string> = {
     airtime_purchase: "Airtime Purchase",
     travel: "Travel",
     savings_goal: "Savings Goal",
-    loan_request: "Loan Request",
+    loan_request: "Mudarabah(loans)",
     zakat: "Zakat(Charity)",
     quran_daily: "Quran Daily",
 }
