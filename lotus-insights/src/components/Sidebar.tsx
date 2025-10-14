@@ -1,5 +1,5 @@
 import { Drawer, List, ListItemButton, ListItemText, Toolbar } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const drawerWidth = 240; // sidebar width
 
@@ -13,6 +13,8 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
+    const location = useLocation(); // Get current path
+
     return (
         <Drawer
             variant="permanent"
@@ -25,18 +27,29 @@ export default function Sidebar() {
                 },
             }}
         >
-            {/* Ensures top spacing (otherwise content touches AppBar if you add one later) */}
+            {/* Top spacing */}
             <Toolbar />
+
             <List>
-                {menuItems.map((item) => (
-                    <ListItemButton
-                        component={Link}
-                        to={item.path}
-                        key={item.text}
-                    >
-                        <ListItemText primary={item.text} />
-                    </ListItemButton>
-                ))}
+                {menuItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+
+                    return (
+                        <ListItemButton
+                            component={Link}
+                            to={item.path}
+                            key={item.text}
+                            sx={{
+                                backgroundColor: isActive ? "grey.300" : "inherit",
+                                "&:hover": {
+                                    backgroundColor: isActive ? "grey.300" : "grey.100",
+                                },
+                            }}
+                        >
+                            <ListItemText primary={item.text} />
+                        </ListItemButton>
+                    );
+                })}
             </List>
         </Drawer>
     );
