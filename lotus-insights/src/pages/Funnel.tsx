@@ -91,7 +91,7 @@ export default function Funnel() {
 
     return (
         <Container>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h4" gutterBottom color="text.primary">
                 Adoption Funnel
             </Typography>
             {/* Replaces deprecated `paragraph` prop */}

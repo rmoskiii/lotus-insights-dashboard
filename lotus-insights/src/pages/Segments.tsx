@@ -4,7 +4,7 @@ import users from "../data/users.json";
 
 const Segments: React.FC = () => {
     return (
-        <Box p={3}>
+        <Box p={3} color="text.primary">
             <Typography variant="h4" gutterBottom>
                 Segments
             </Typography>

@@ -14,8 +14,8 @@ const Recommendations: React.FC = () => {
     }));
 
     return (
-        <Box p={3}>
-            <Typography variant="h4" gutterBottom>
+        <Box p={3} >
+            <Typography variant="h4" gutterBottom color="text.primary">
                 Recommendations
             </Typography>
             <Grid container spacing={2}>
