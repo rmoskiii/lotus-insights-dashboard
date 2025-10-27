@@ -21,7 +21,7 @@ const featureWeights: Record<string, number> = {
     airtime_purchase: 15,
     bill_payment: 10,
     savings_goal: 5,
-    loan_request: 3,
+    loan_request: 7,
     travel: 3,
     zakat: 2,
     quran_daily: 2,
