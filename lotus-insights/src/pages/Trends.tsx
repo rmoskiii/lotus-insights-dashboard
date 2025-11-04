@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
     Box,
     Card,
@@ -15,10 +15,12 @@ import {
     Paper,
     Stack,
 } from "@mui/material"
+import type { SelectChangeEvent } from '@mui/material/Select'
 import { BarChart } from "@mui/x-charts/BarChart"
 import { useTheme } from "@mui/material/styles"
-import users from "../data/users.json.ts"
-import featureLogsJson from "../data/featureLogs.json"
+
+// types
+type MonthRecord = { month: string; [feature: string]: any };
 
 const featureColors = [
     "#1976d2", // Blue
@@ -48,10 +50,65 @@ export default function FeatureUsageChart() {
     const theme = useTheme()
     const [selectedSegment, setSelectedSegment] = useState<string>("all")
 
+    // data state
+    const [users, setUsers] = useState<any[]>([])
+    const [logs, setLogs] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        let mounted = true
+        async function fetchData() {
+            setLoading(true)
+            setError(null)
+            try {
+                // try fetching from backend endpoints
+                const [uRes, lRes] = await Promise.all([
+                    fetch('/api/sandbox/users?limit=5000'),
+                    fetch('/api/sandbox/featureLogs?limit=50000')
+                ])
+
+                if (!uRes.ok || !lRes.ok) throw new Error('Non-OK response')
+
+                const uJson = await uRes.json()
+                const lJson = await lRes.json()
+
+                const fetchedUsers = Array.isArray(uJson.results) ? uJson.results : (uJson || [])
+                const fetchedLogs = Array.isArray(lJson.results) ? lJson.results : (lJson || [])
+
+                if (mounted) {
+                    setUsers(fetchedUsers)
+                    setLogs(fetchedLogs)
+                    setLoading(false)
+                }
+            } catch (err) {
+                // fallback to local data imports if fetch fails
+                try {
+                    const [{ default: localUsers }, { default: localLogs }] = await Promise.all([
+                        import('../data/users.json.ts'),
+                        import('../data/featureLogs.json')
+                    ])
+                    if (mounted) {
+                        setUsers(localUsers)
+                        setLogs(localLogs)
+                        setLoading(false)
+                    }
+                } catch (impErr) {
+                    if (mounted) {
+                        setError(String(err || impErr))
+                        setLoading(false)
+                    }
+                }
+            }
+        }
+        fetchData()
+        return () => { mounted = false }
+    }, [])
+
     const userSegments = useMemo(() => {
         const segments = [...new Set(users.map((user) => user.segment))]
         return ["all", ...segments.sort()]
-    }, [])
+    }, [users])
 
     const userSegmentMap = useMemo(() => {
         const map: Record<string, string> = {}
@@ -59,21 +116,15 @@ export default function FeatureUsageChart() {
             map[user.id] = user.segment
         })
         return map
-    }, [])
+    }, [users])
 
     const { chartData, availableFeatures, totalUsage } = useMemo(() => {
-        const logs = featureLogsJson
-
-        // Filter logs by selected segment
-        const filteredLogs =
-            selectedSegment === "all"
-                ? logs
-                : logs.filter((log) => userSegmentMap[log.userId] === selectedSegment)
+        const filtered = selectedSegment === 'all' ? logs : logs.filter((log) => userSegmentMap[log.userId] === selectedSegment)
 
         // Group by month and feature
         const monthlyData: Record<string, Record<string, number>> = {}
 
-        filteredLogs.forEach((log) => {
+        filtered.forEach((log) => {
             const date = new Date(log.timestamp)
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
 
@@ -99,7 +150,7 @@ export default function FeatureUsageChart() {
             }))
             .sort((a, b) =>
                 new Date(a.month).getTime() - new Date(b.month).getTime()
-            )
+            ) as MonthRecord[]
 
         // Collect all features
         const features = new Set<string>()
@@ -116,13 +167,13 @@ export default function FeatureUsageChart() {
             return (
                 sum +
                 availableFeatures.reduce((monthSum, feature) => {
-                    return monthSum + (month[feature] || 0)
+                    return monthSum + ((month as any)[feature] || 0)
                 }, 0)
             )
         }, 0)
 
         return { chartData: chartArray, availableFeatures, totalUsage }
-    }, [selectedSegment, userSegmentMap])
+    }, [selectedSegment, userSegmentMap, logs])
 
     const series = useMemo(() => {
         return availableFeatures.map((feature, index) => ({
@@ -133,11 +184,14 @@ export default function FeatureUsageChart() {
         }))
     }, [availableFeatures])
 
+    if (loading) return <Card sx={{ width: "100%", p: 2 }}><Typography>Loading data…</Typography></Card>
+    if (error) return <Card sx={{ width: "100%", p: 2 }}><Typography color="error">Error loading data: {error}</Typography></Card>
+
     return (
         <Card sx={{ width: "100%", p: 2 }}>
             <Box sx={{ mb: 3 }}>
                 <Stack
-                    direction={{ xs: "column", sm: "row" }}
+                    sx={{ flexDirection: { xs: "column", sm: "row" } }}
                     justifyContent="flex-start"
                     alignItems="start"
                     spacing={2}
@@ -157,7 +211,7 @@ export default function FeatureUsageChart() {
                         <Select
                             value={selectedSegment}
                             label="User Segment"
-                            onChange={(e) => setSelectedSegment(e.target.value)}
+                            onChange={(e: SelectChangeEvent) => setSelectedSegment(e.target.value as string)}
                         >
                             {userSegments.map((segment) => (
                                 <MenuItem key={segment} value={segment}>
@@ -192,7 +246,7 @@ export default function FeatureUsageChart() {
             <CardContent sx={{ p: 0 }}>
                 <Box sx={{ width: "100%", height: 500 }}>
                     <BarChart
-                        dataset={chartData}
+                        dataset={chartData as any}
                         xAxis={[
                             {
                                 scaleType: "band",
@@ -203,12 +257,12 @@ export default function FeatureUsageChart() {
                                 },
                             },
                         ]}
-                        series={series}
+                        series={series as any}
                         margin={{ top: 20, right: 40, left: 60, bottom: 60 }}
                         slotProps={{
                             legend: {
                                 direction: "row",
-                                position: { vertical: "top", horizontal: "middle" },
+                                position: { vertical: "top", horizontal: "center" },
                                 padding: 0,
                             },
                         }}
@@ -223,7 +277,7 @@ export default function FeatureUsageChart() {
                         {availableFeatures
                             .map((feature) => {
                                 const totalFeatureUsage = chartData.reduce(
-                                    (sum, month) => sum + (month[feature] || 0),
+                                    (sum, month) => sum + ((month as any)[feature] || 0),
                                     0
                                 )
                                 const percentage =
@@ -237,7 +291,7 @@ export default function FeatureUsageChart() {
                             })
                             .sort((a, b) => b.totalFeatureUsage - a.totalFeatureUsage)
                             .map(({ feature, totalFeatureUsage, percentage, color }) => (
-                                <Grid item xs={12} sm={6} lg={4} key={feature}>
+                                <Grid item xs={12} sm={6} lg={4} key={feature} component="div">
                                     <Paper
                                         sx={{
                                             p: 2,
