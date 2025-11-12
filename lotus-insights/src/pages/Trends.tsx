@@ -14,13 +14,16 @@ import {
     Chip,
     Paper,
     Stack,
+    Button,
+    Switch,
+    FormControlLabel
 } from "@mui/material"
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { BarChart } from "@mui/x-charts/BarChart"
 import { useTheme } from "@mui/material/styles"
 
 // types
-type MonthRecord = { month: string; [feature: string]: any };
+type MonthRecord = { month: string; monthKey?: string; [feature: string]: any };
 
 const featureColors = [
     "#1976d2", // Blue
@@ -118,6 +121,11 @@ export default function FeatureUsageChart() {
         return map
     }, [users])
 
+    // helper: month key YYYY-MM
+    function monthKeyForDate(d: Date) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    }
+
     const { chartData, availableFeatures, totalUsage } = useMemo(() => {
         const filtered = selectedSegment === 'all' ? logs : logs.filter((log) => userSegmentMap[log.userId] === selectedSegment)
 
@@ -139,9 +147,10 @@ export default function FeatureUsageChart() {
             monthlyData[monthKey][log.feature]++
         })
 
-        // Convert to chart format
+        // Convert to chart format; include monthKey for timeline alignment
         const chartArray = Object.entries(monthlyData)
             .map(([month, features]) => ({
+                monthKey: month,
                 month: new Date(month + "-01").toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
@@ -149,14 +158,15 @@ export default function FeatureUsageChart() {
                 ...features,
             }))
             .sort((a, b) =>
-                new Date(a.month).getTime() - new Date(b.month).getTime()
+                // sort by monthKey (YYYY-MM) to ensure chronological order
+                a.monthKey!.localeCompare(b.monthKey!)
             ) as MonthRecord[]
 
         // Collect all features
         const features = new Set<string>()
         chartArray.forEach((data) => {
             Object.keys(data).forEach((key) => {
-                if (key !== "month") features.add(key)
+                if (key !== "month" && key !== "monthKey") features.add(key)
             })
         })
 
@@ -261,89 +271,91 @@ export default function FeatureUsageChart() {
                         margin={{ top: 20, right: 40, left: 60, bottom: 60 }}
                         slotProps={{
                             legend: {
-                                direction: "row",
+                                // cast to any to satisfy the legend prop's Direction type in this chart lib
+                                direction: "row" as any,
                                 position: { vertical: "top", horizontal: "center" },
                                 padding: 0,
                             },
                         }}
                     />
                 </Box>
-
-                <Box sx={{ mt: 4 }}>
-                    <Typography variant="h6" gutterBottom>
-                        Feature Usage Summary
-                    </Typography>
-                    <Grid container spacing={2}>
-                        {availableFeatures
-                            .map((feature) => {
-                                const totalFeatureUsage = chartData.reduce(
-                                    (sum, month) => sum + ((month as any)[feature] || 0),
-                                    0
-                                )
-                                const percentage =
-                                    totalUsage > 0 ? (totalFeatureUsage / totalUsage) * 100 : 0
-
-                                // find color from chart series
-                                const seriesConfig = series.find((s) => s.dataKey === feature)
-                                const color = seriesConfig?.color || theme.palette.grey[400]
-
-                                return { feature, totalFeatureUsage, percentage, color }
-                            })
-                            .sort((a, b) => b.totalFeatureUsage - a.totalFeatureUsage)
-                            .map(({ feature, totalFeatureUsage, percentage, color }) => (
-                                <Grid item xs={12} sm={6} lg={4} key={feature} component="div">
-                                    <Paper
-                                        sx={{
-                                            p: 2,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 2,
-                                            border: 1,
-                                            borderColor: "divider",
-                                        }}
-                                    >
-                                        <Box
-                                            sx={{
-                                                width: 16,
-                                                height: 16,
-                                                borderRadius: "50%",
-                                                backgroundColor: color,
-                                                flexShrink: 0,
-                                            }}
-                                        />
-                                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                            <Typography variant="body2" fontWeight="medium" noWrap>
-                                                {featureNames[feature] || feature}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {totalFeatureUsage.toLocaleString()} uses ({percentage.toFixed(1)}%)
-                                            </Typography>
-                                        </Box>
-                                    </Paper>
-                                </Grid>
-                            ))}
-                    </Grid>
-                    <Box sx={{ mt: 4, pr: 8 }}>
-                        <Typography variant="h6" gutterBottom>
-                            Observations & Insights
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" paragraph>
-                            Feature usage often correlates with <strong>seasonal trends</strong> and
-                            <strong> user segments</strong>. For example, travel-related features may peak
-                            during holiday seasons, while bill payment and airtime purchases are more stable
-                            month-to-month. Segments such as students or salaried workers may also display
-                            unique patterns—for instance, higher fund transfers at the end of the month or
-                            increased savings goal activity during festive periods.
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            These insights suggest that analyzing both <strong>time periods</strong> and
-                            <strong> user groups</strong> together provides deeper understanding of user
-                            behavior, which can inform product improvements and targeted engagement strategies.
-                        </Typography>
-                    </Box>
-
-                </Box>
             </CardContent>
+
+            <Box sx={{ mt: 4 }}>
+                <Typography variant="h6" gutterBottom>
+                    Feature Usage Summary
+                </Typography>
+                <Grid container spacing={2}>
+                    {availableFeatures
+                        .map((feature) => {
+                            const totalFeatureUsage = chartData.reduce(
+                                (sum, month) => sum + ((month as any)[feature] || 0),
+                                0
+                            )
+                            const percentage =
+                                totalUsage > 0 ? (totalFeatureUsage / totalUsage) * 100 : 0
+
+                            // find color from chart series
+                            const seriesConfig = series.find((s) => s.dataKey === feature)
+                            const color = seriesConfig?.color || theme.palette.grey[400]
+
+                            return { feature, totalFeatureUsage, percentage, color }
+                        })
+                        .sort((a, b) => b.totalFeatureUsage - a.totalFeatureUsage)
+                        .map(({ feature, totalFeatureUsage, percentage, color }) => (
+                            <Grid item xs={12} sm={6} lg={4} key={feature} component="div">
+                                <Paper
+                                    sx={{
+                                        p: 2,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 2,
+                                        border: 1,
+                                        borderColor: "divider",
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            width: 16,
+                                            height: 16,
+                                            borderRadius: "50%",
+                                            backgroundColor: color,
+                                            flexShrink: 0,
+                                        }}
+                                    />
+                                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                        <Typography variant="body2" fontWeight="medium" noWrap>
+                                            {featureNames[feature] || feature}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {totalFeatureUsage.toLocaleString()} uses ({percentage.toFixed(1)}%)
+                                        </Typography>
+                                    </Box>
+                                </Paper>
+                            </Grid>
+                        ))}
+                </Grid>
+
+                <Box sx={{ mt: 4, pr: 8 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Observations & Insights
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" paragraph>
+                        Feature usage often correlates with <strong>seasonal trends</strong> and
+                        <strong> user segments</strong>. For example, travel-related features may peak
+                        during holiday seasons, while bill payment and airtime purchases are more stable
+                        month-to-month. Segments such as students or salaried workers may also display
+                        unique patterns—for instance, higher fund transfers at the end of the month or
+                        increased savings goal activity during festive periods.
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        These insights suggest that analyzing both <strong>time periods</strong> and
+                        <strong> user groups</strong> together provides deeper understanding of user
+                        behavior, which can inform product improvements and targeted engagement strategies.
+                    </Typography>
+                </Box>
+
+            </Box>
         </Card>
 
     )
