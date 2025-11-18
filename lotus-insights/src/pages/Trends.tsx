@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import {
     Box,
     Card,
@@ -21,6 +21,7 @@ import {
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { BarChart } from "@mui/x-charts/BarChart"
 import { useTheme } from "@mui/material/styles"
+import { useSandboxData, featureNames } from "../lib/useSandboxData"
 
 // types
 type MonthRecord = { month: string; monthKey?: string; [feature: string]: any };
@@ -37,76 +38,12 @@ const featureColors = [
     "#e91e63", // Pink
 ]
 
-const featureNames: Record<string, string> = {
-    login: "Login",
-    fund_transfer: "Fund Transfer",
-    bill_payment: "Bill Payment",
-    airtime_purchase: "Airtime Purchase",
-    travel: "Travel",
-    savings_goal: "Savings Goal",
-    loan_request: "Mudarabah(loans)",
-    zakat: "Zakat(Charity)",
-    quran_daily: "Quran Daily",
-}
-
 export default function FeatureUsageChart() {
     const theme = useTheme()
     const [selectedSegment, setSelectedSegment] = useState<string>("all")
 
-    // data state
-    const [users, setUsers] = useState<any[]>([])
-    const [logs, setLogs] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        let mounted = true
-        async function fetchData() {
-            setLoading(true)
-            setError(null)
-            try {
-                // try fetching from backend endpoints
-                const [uRes, lRes] = await Promise.all([
-                    fetch('/api/sandbox/users?limit=5000'),
-                    fetch('/api/sandbox/featureLogs?limit=50000')
-                ])
-
-                if (!uRes.ok || !lRes.ok) throw new Error('Non-OK response')
-
-                const uJson = await uRes.json()
-                const lJson = await lRes.json()
-
-                const fetchedUsers = Array.isArray(uJson.results) ? uJson.results : (uJson || [])
-                const fetchedLogs = Array.isArray(lJson.results) ? lJson.results : (lJson || [])
-
-                if (mounted) {
-                    setUsers(fetchedUsers)
-                    setLogs(fetchedLogs)
-                    setLoading(false)
-                }
-            } catch (err) {
-                // fallback to local data imports if fetch fails
-                try {
-                    const [{ default: localUsers }, { default: localLogs }] = await Promise.all([
-                        import('../data/users.json.ts'),
-                        import('../data/featureLogs.json')
-                    ])
-                    if (mounted) {
-                        setUsers(localUsers)
-                        setLogs(localLogs)
-                        setLoading(false)
-                    }
-                } catch (impErr) {
-                    if (mounted) {
-                        setError(String(err || impErr))
-                        setLoading(false)
-                    }
-                }
-            }
-        }
-        fetchData()
-        return () => { mounted = false }
-    }, [])
+    // use shared data hook (backend sandbox endpoints with local fallback)
+    const { users, logs, loading, error } = useSandboxData()
 
     const userSegments = useMemo(() => {
         const segments = [...new Set(users.map((user) => user.segment))]
@@ -303,17 +240,17 @@ export default function FeatureUsageChart() {
                         })
                         .sort((a, b) => b.totalFeatureUsage - a.totalFeatureUsage)
                         .map(({ feature, totalFeatureUsage, percentage, color }) => (
-                            <Grid item xs={12} sm={6} lg={4} key={feature} component="div">
-                                <Paper
-                                    sx={{
-                                        p: 2,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 2,
-                                        border: 1,
-                                        borderColor: "divider",
-                                    }}
-                                >
+                             <Grid item xs={12} sm={6} lg={4} key={feature} component="div">
+                                 <Paper
+                                     sx={{
+                                         p: 2,
+                                         display: "flex",
+                                         alignItems: "center",
+                                         gap: 2,
+                                         border: 1,
+                                         borderColor: "divider",
+                                     }}
+                                 >
                                     <Box
                                         sx={{
                                             width: 16,

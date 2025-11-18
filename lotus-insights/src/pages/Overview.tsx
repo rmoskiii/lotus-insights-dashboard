@@ -3,8 +3,8 @@ import { Box, Typography, Paper, Divider } from "@mui/material";
 
 const Overview: React.FC = () => {
     return (
-        <Box p={3} color="text.primary">
-            <Typography variant="h4" gutterBottom>
+        <Box pt={0} px={2} pb={2} color="text.primary">
+            <Typography variant="h4">
                 Overview
             </Typography>
 
