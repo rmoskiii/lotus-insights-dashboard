@@ -6,6 +6,6 @@
     "npm": ">=8"
   },
   "scripts": {
-    "build": "npm --prefix lotus-insights run build"
+    "build": "cd lotus-insights && npm ci --no-audit --no-fund && npm run build"
   }
 }
