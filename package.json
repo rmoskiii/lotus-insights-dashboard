@@ -1,6 +1,10 @@
 {
   "name": "lotus-insights-dashboard-root",
   "private": true,
+  "engines": {
+    "node": "^18 || ^20",
+    "npm": ">=8"
+  },
   "scripts": {
     "build": "npm --prefix lotus-insights run build"
   }
