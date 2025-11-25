@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export type User = { id: string; name: string; segment?: string };
 export type FeatureLog = { userId: string; feature: string; timestamp: string };
+export type Transaction = { id: string; userId: string; amount: number; currency?: string; createdAt?: string };
 
 export const featureNames: Record<string, string> = {
   login: "Login",
@@ -18,60 +19,43 @@ export const featureNames: Record<string, string> = {
 export function useSandboxData() {
   const [users, setUsers] = useState<User[]>([]);
   const [logs, setLogs] = useState<FeatureLog[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    async function fetchData() {
+    async function loadLocalData() {
       setLoading(true);
       setError(null);
       try {
-        const [uRes, lRes] = await Promise.all([
-          fetch("/api/sandbox/users?limit=5000"),
-          fetch("/api/sandbox/featureLogs?limit=50000"),
+        // Directly import local sandbox data for frontend-only demo (no network calls)
+        const [{ default: localUsers }, { default: localLogs }, { default: localTxns }] = await Promise.all([
+          import("../data/users.json.ts"),
+          import("../data/featureLogs.json"),
+          import("../data/transactions.json.ts"),
         ]);
 
-        if (!uRes.ok || !lRes.ok) throw new Error("Non-OK response");
-
-        const uJson = await uRes.json();
-        const lJson = await lRes.json();
-
-        const fetchedUsers = Array.isArray(uJson.results) ? uJson.results : uJson || [];
-        const fetchedLogs = Array.isArray(lJson.results) ? lJson.results : lJson || [];
-
         if (mounted) {
-          setUsers(fetchedUsers);
-          setLogs(fetchedLogs);
+          setUsers(localUsers as any);
+          setLogs(localLogs as any);
+          setTransactions(localTxns as any);
           setLoading(false);
         }
-      } catch (err) {
-        try {
-          const [{ default: localUsers }, { default: localLogs }] = await Promise.all([
-            import("../data/users.json.ts"),
-            import("../data/featureLogs.json"),
-          ]);
-          if (mounted) {
-            setUsers(localUsers);
-            setLogs(localLogs);
-            setLoading(false);
-          }
-        } catch (impErr) {
-          if (mounted) {
-            setError(String(err || impErr));
-            setLoading(false);
-          }
+      } catch (impErr) {
+        if (mounted) {
+          setError(String(impErr));
+          setLoading(false);
         }
       }
     }
 
-    fetchData();
+    loadLocalData();
     return () => {
       mounted = false;
     };
   }, []);
 
-  return { users, logs, loading, error } as const;
+  return { users, logs, transactions, loading, error } as const;
 }
-
