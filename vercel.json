@@ -1,15 +1,10 @@
 {
   "version": 2,
-  "installCommand": "npm --prefix lotus-insights ci --no-audit --no-fund",
-  "buildCommand": "npm --prefix lotus-insights run build",
-  "builds": [
-    {
-      "src": "lotus-insights/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    }
-  ],
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": "dist",
+  "rootDirectory": "lotus-insights",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
