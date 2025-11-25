@@ -1,0 +1,9 @@
+# Ignore build output
+lotus-insights/dist
+
+# Node modules (optional)
+node_modules/
+
+# Logs
+*.log
+
