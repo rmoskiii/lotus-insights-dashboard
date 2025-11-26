@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node ./scripts/vercel-debug.js && vite build",
+    "build": "node ./scripts/vercel-debug.cjs && vite build --root .",
     "lint": "eslint .",
     "preview": "vite preview"
   },
