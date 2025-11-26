@@ -1,4 +1,6 @@
 {
-  "buildCommand": "cd lotus-insights-dashboard && npm ci && npm run build",
-  "outputDirectory": "lotus-insights-dashboard/dist"
+  "buildCommand": "cd lotus-insights && npm ci && npm run build",
+  "outputDirectory": "lotus-insights/dist",
+  "installCommand": "cd lotus-insights && npm install",
+  "framework": "vite"
 }
