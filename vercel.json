@@ -1,15 +1,4 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "lotus-insights/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "build": {
-    "env": {}
-  }
+  "buildCommand": "cd lotus-insights && npm ci && npm run build",
+  "outputDirectory": "lotus-insights/dist"
 }
