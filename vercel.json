@@ -9,7 +9,6 @@
       }
     }
   ],
-  "installCommand": "cd lotus-insights && npm ci --no-audit --no-fund",
   "build": {
     "env": {}
   }
