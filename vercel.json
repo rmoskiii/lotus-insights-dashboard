@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "buildCommand": "cd lotus-insights && npm ci && npm run build",
-  "outputDirectory": "lotus-insights/dist"
+  "outputDirectory": "lotus-insightsdashboard/lotus-insights/dist"
 }
